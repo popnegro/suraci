@@ -1,0 +1,1081 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Suraci Consulting OS — Plataforma de Diagnóstico y Expansión de Franquicias</title>
+<meta name="description" content="Suraci Consulting OS: diagnóstico de franquiciabilidad, CRM de clientes y portal de expansión para consultoras de franquicias." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Inter', 'ui-sans-serif', 'system-ui'],
+          display: ['"Space Grotesk"', 'ui-sans-serif', 'system-ui'],
+          mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+        },
+        colors: {
+          ink: {
+            50: '#f4f6f9', 100: '#e6eaf1', 200: '#c9d2e0', 300: '#a2afc6',
+            400: '#7484a3', 500: '#556382', 600: '#404c68', 700: '#2f3852',
+            800: '#1f273c', 900: '#141a2b', 950: '#0a0e18',
+          },
+          gold: {
+            50: '#fdf8ec', 100: '#faedc9', 200: '#f4d98d', 300: '#edc158',
+            400: '#e2a52e', 500: '#c8871e', 600: '#a36a18', 700: '#7d5115',
+            800: '#5c3b13', 900: '#402910',
+          },
+        },
+        boxShadow: {
+          soft: '0 1px 2px rgba(10,14,24,0.06), 0 8px 24px -8px rgba(10,14,24,0.12)',
+        },
+      },
+    },
+  };
+</script>
+<style>
+  html { scroll-behavior: smooth; }
+  body { -webkit-font-smoothing: antialiased; }
+  ::selection { background: #f4d98d; color: #141a2b; }
+  .fade-in { animation: fadeIn .45s ease-out both; }
+  @keyframes fadeIn { from { opacity:0; transform: translateY(6px);} to { opacity:1; transform: translateY(0);} }
+  .skeleton-pulse { animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.55} }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: #a2afc6; border-radius: 8px; }
+  .dark ::-webkit-scrollbar-thumb { background: #2f3852; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  :focus-visible { outline: 2px solid #c8871e; outline-offset: 2px; border-radius: 4px; }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+  }
+</style>
+</head>
+<body class="bg-ink-50 text-ink-900 dark:bg-ink-950 dark:text-ink-100 font-sans antialiased transition-colors">
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script>
+
+<script type="text/babel" data-presets="react,env">
+const { useState, useMemo, useEffect, useRef, createContext, useContext } = React;
+
+/* ============================== ICONS ============================== */
+const Icon = ({ path, size = 18, className = "", strokeWidth = 1.8, filled = false }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"}
+    stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
+    className={className} aria-hidden="true">
+    <path d={path} />
+  </svg>
+);
+const I = {
+  logo: "M4 12L12 4l8 8-8 8-8-8z",
+  sun: "M12 3v2M12 19v2M5 5l1.4 1.4M17.6 17.6L19 19M3 12h2M19 12h2M5 19l1.4-1.4M17.6 6.4L19 5M12 8a4 4 0 100 8 4 4 0 000-8z",
+  moon: "M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z",
+  menu: "M4 6h16M4 12h16M4 18h16",
+  close: "M18 6L6 18M6 6l12 12",
+  arrowRight: "M5 12h14M13 5l7 7-7 7",
+  chevronRight: "M9 18l6-6-6-6",
+  dashboard: "M4 4h7v9H4V4zm9 0h7v5h-7V4zm0 9h7v7h-7v-7zM4 17h7v3H4v-3z",
+  users: "M17 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M15 7a4 4 0 11-8 0 4 4 0 018 0zm6 14v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75",
+  compass: "M12 22a10 10 0 100-20 10 10 0 000 20zM16 8l-3 6-6 3 3-6 6-3z",
+  portal: "M4 6h16v13a1 1 0 01-1 1H5a1 1 0 01-1-1V6zM4 6l8-3 8 3M9 20v-6h6v6",
+  ai: "M12 3l1.6 3.6L17 8l-3.4 1.4L12 13l-1.6-3.6L7 8l3.4-1.4L12 3zM5 15l.8 1.8L7.6 17l-1.8.8L5 19.6l-.8-1.8L2.4 17l1.8-.8L5 15zm14 0l.8 1.8L21.6 17l-1.8.8L19 19.6l-.8-1.8L16.4 17l1.8-.8L19 15z",
+  settings: "M10.3 3.3a1.9 1.9 0 013.4 0l.3.6a1.9 1.9 0 002.3 1l.6-.2a1.9 1.9 0 012.4 2.4l-.2.6a1.9 1.9 0 001 2.3l.6.3a1.9 1.9 0 010 3.4l-.6.3a1.9 1.9 0 00-1 2.3l.2.6a1.9 1.9 0 01-2.4 2.4l-.6-.2a1.9 1.9 0 00-2.3 1l-.3.6a1.9 1.9 0 01-3.4 0l-.3-.6a1.9 1.9 0 00-2.3-1l-.6.2a1.9 1.9 0 01-2.4-2.4l.2-.6a1.9 1.9 0 00-1-2.3l-.6-.3a1.9 1.9 0 010-3.4l.6-.3a1.9 1.9 0 001-2.3l-.2-.6a1.9 1.9 0 012.4-2.4l.6.2a1.9 1.9 0 002.3-1l.3-.6zM12 15a3 3 0 100-6 3 3 0 000 6z",
+  search: "M11 19a8 8 0 100-16 8 8 0 000 16zM21 21l-4.3-4.3",
+  filter: "M4 5h16M7 12h10M10 19h4",
+  logout: "M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9",
+  check: "M20 6L9 17l-5-5",
+  checkCircle: "M12 22a10 10 0 100-20 10 10 0 000 20zM8 12l3 3 5-6",
+  alert: "M12 9v4M12 17h.01M10.3 3.9L2.8 17a2 2 0 001.7 3h14.9a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z",
+  building: "M4 21V4a1 1 0 011-1h6a1 1 0 011 1v17M12 21V9a1 1 0 011-1h6a1 1 0 011 1v12M8 8h.01M8 12h.01M8 16h.01",
+  chart: "M4 20V10M10 20V4M16 20v-7M22 20H2",
+  send: "M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z",
+  mail: "M4 4h16v16H4V4zm0 0l8 9 8-9",
+  phone: "M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3 19.5 19.5 0 01-6-6A19.8 19.8 0 012.1 4.2 2 2 0 014.1 2h3a2 2 0 012 1.7c.1.9.3 1.8.6 2.7a2 2 0 01-.5 2.1L8 9.7a16 16 0 006.3 6.3l1.2-1.2a2 2 0 012.1-.5c.9.3 1.8.5 2.7.6a2 2 0 011.7 2z",
+  gauge: "M12 21a9 9 0 100-18 9 9 0 000 18zM12 12l4-4M12 8v.01",
+  doc: "M6 2h9l5 5v15H6V2zm9 0v5h5",
+  plus: "M12 5v14M5 12h14",
+  note: "M3 5h18M3 12h12M3 19h18",
+  clock: "M12 22a10 10 0 100-20 10 10 0 000 20zM12 6v6l4 2",
+  bot: "M12 8V4H8M4 8h16v11a1 1 0 01-1 1H5a1 1 0 01-1-1V8zM2 13h2M20 13h2M9 14v1M15 14v1",
+  spark: "M11 3l1.8 5.6L18 10.5l-5.2 1.9L11 18l-1.8-5.6L4 10.5l5.2-1.9L11 3z",
+  target: "M12 22a10 10 0 100-20 10 10 0 000 20zM12 17a5 5 0 100-10 5 5 0 000 10zM12 13a1 1 0 100-2 1 1 0 000 2z",
+  trend: "M3 17l6-6 4 4 8-8M21 7h-6v6",
+  shield: "M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z",
+  briefcase: "M4 7h16v13H4V7zm4 0V5a2 2 0 012-2h4a2 2 0 012 2v2",
+  home: "M3 11l9-8 9 8M5 10v10h14V10",
+};
+
+/* ============================== DATA (demo) ============================== */
+const INDUSTRIES = ["Gastronomía", "Belleza & Estética", "Salud & Bienestar", "Educación", "Retail", "Servicios"];
+const STAGES = [
+  { id: "lead", label: "Lead nuevo", color: "bg-ink-100 text-ink-700 dark:bg-ink-800 dark:text-ink-200" },
+  { id: "diagnostico", label: "En diagnóstico", color: "bg-gold-100 text-gold-800 dark:bg-gold-900/40 dark:text-gold-300" },
+  { id: "propuesta", label: "Propuesta enviada", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300" },
+  { id: "cliente", label: "Cliente activo", color: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300" },
+];
+const stageMeta = (id) => STAGES.find(s => s.id === id) || STAGES[0];
+
+const seedClients = [
+  { id: "c1", name: "Café del Sur", owner: "Guillermo Albornoz", industry: "Gastronomía", city: "CABA", stage: "cliente",
+    email: "guillermo@cafedelsur.com.ar", phone: "+54 9 11 5834-9210", score: 87,
+    timeline: [
+      { d: "2026-06-15", t: "Diagnóstico de franquiciabilidad completado — Índice 87/100", k: "diagnostico" },
+      { d: "2026-06-22", t: "Propuesta de manual de franquicia enviada", k: "propuesta" },
+      { d: "2026-07-01", t: "Contrato de consultoría firmado — inicio de expansión", k: "contrato" },
+      { d: "2026-07-08", t: "Primer local piloto en obra (Palermo Soho)", k: "obra" },
+    ]},
+  { id: "c2", name: "Pizza Nostra", owner: "Mariana Rosas", industry: "Gastronomía", city: "Rosario", stage: "propuesta",
+    email: "mrosas@pizzanostra.com", phone: "+54 9 341 532-1188", score: 71,
+    timeline: [
+      { d: "2026-06-01", t: "Primer contacto vía formulario web", k: "lead" },
+      { d: "2026-06-10", t: "Diagnóstico de franquiciabilidad completado — Índice 71/100", k: "diagnostico" },
+      { d: "2026-06-28", t: "Reunión de devolución de resultados", k: "reunion" },
+      { d: "2026-07-05", t: "Propuesta comercial enviada, en revisión legal", k: "propuesta" },
+    ]},
+  { id: "c3", name: "Nails Studio Córdoba", owner: "Sofía Santini", industry: "Belleza & Estética", city: "Córdoba", stage: "diagnostico",
+    email: "ssantini@nailsstudio.com", phone: "+54 9 351 234-9811", score: 52,
+    timeline: [
+      { d: "2026-07-02", t: "Primer contacto vía referido", k: "lead" },
+      { d: "2026-07-09", t: "Formulario de diagnóstico enviado al cliente", k: "diagnostico" },
+    ]},
+  { id: "c4", name: "Vital Fit Club", owner: "Roberto Gómez", industry: "Salud & Bienestar", city: "Córdoba", stage: "cliente",
+    email: "roberto@vitalfit.com", phone: "+54 9 351 889-1234", score: 92,
+    timeline: [
+      { d: "2026-05-10", t: "Diagnóstico de franquiciabilidad completado — Índice 92/100", k: "diagnostico" },
+      { d: "2026-05-20", t: "Manual de franquicia entregado", k: "propuesta" },
+      { d: "2026-06-01", t: "Contrato de consultoría firmado", k: "contrato" },
+      { d: "2026-06-25", t: "Primer franquiciado firmado (San Isidro)", k: "obra" },
+    ]},
+  { id: "c5", name: "Le Blé Boulangerie", owner: "Estela Vázquez", industry: "Gastronomía", city: "Rosario", stage: "lead",
+    email: "estelav@leble.com", phone: "+54 9 341 000-2211", score: 0,
+    timeline: [
+      { d: "2026-07-09", t: "Solicitud de información vía landing", k: "lead" },
+    ]},
+  { id: "c6", name: "Estudio Aula Viva", owner: "Ignacio Larreta", industry: "Educación", city: "San Isidro", stage: "diagnostico",
+    email: "ignacio@aulaviva.com", phone: "+54 9 11 4099-2810", score: 0,
+    timeline: [
+      { d: "2026-07-03", t: "Primer contacto comercial", k: "lead" },
+      { d: "2026-07-11", t: "Diagnóstico en curso", k: "diagnostico" },
+    ]},
+];
+
+/* ============================== UTILS ============================== */
+const fmtDate = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" });
+const fmtMoney = (n) => "$" + n.toLocaleString("es-AR");
+const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+
+function scoreCategory(score) {
+  if (score >= 75) return { label: "Alto potencial de franquicia", color: "emerald", desc: "El negocio está en condiciones de iniciar un proceso de expansión estructurado en el corto plazo." };
+  if (score >= 50) return { label: "Potencial en desarrollo", color: "gold", desc: "Existe una base sólida, pero conviene fortalecer procesos y estandarización antes de escalar." };
+  return { label: "Requiere fortalecimiento previo", color: "ink", desc: "Se recomienda un plan de preparación operativa y financiera antes de evaluar la franquicia." };
+}
+
+/* ============================== SHARED UI ============================== */
+function Button({ children, variant = "primary", size = "md", className = "", icon, ...props }) {
+  const sizes = { sm: "text-xs px-3 py-1.5", md: "text-sm px-4 py-2.5", lg: "text-sm px-6 py-3.5" };
+  const variants = {
+    primary: "bg-ink-900 text-white hover:bg-ink-800 dark:bg-gold-500 dark:text-ink-950 dark:hover:bg-gold-400 shadow-soft",
+    gold: "bg-gold-500 text-ink-950 hover:bg-gold-400 shadow-soft",
+    outline: "border border-ink-200 dark:border-ink-700 text-ink-700 dark:text-ink-200 hover:bg-ink-100 dark:hover:bg-ink-800 bg-white dark:bg-ink-900",
+    ghost: "text-ink-600 dark:text-ink-300 hover:bg-ink-100 dark:hover:bg-ink-800",
+    danger: "text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20",
+  };
+  return (
+    <button className={`inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition-all active:scale-[.98] disabled:opacity-40 disabled:pointer-events-none ${sizes[size]} ${variants[variant]} ${className}`} {...props}>
+      {icon && <Icon path={icon} size={size === "lg" ? 18 : 15} />}
+      {children}
+    </button>
+  );
+}
+
+function Card({ children, className = "", ...props }) {
+  return <div className={`bg-white dark:bg-ink-900 border border-ink-100 dark:border-ink-800 rounded-2xl shadow-soft ${className}`} {...props}>{children}</div>;
+}
+
+function Badge({ children, className = "" }) {
+  return <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${className}`}>{children}</span>;
+}
+
+function Field({ label, children, hint }) {
+  return (
+    <label className="block space-y-1.5">
+      <span className="block text-xs font-semibold text-ink-600 dark:text-ink-300 uppercase tracking-wide">{label}</span>
+      {children}
+      {hint && <span className="block text-[11px] text-ink-400">{hint}</span>}
+    </label>
+  );
+}
+
+const selectClass = "w-full px-3 py-2.5 rounded-lg border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-800 text-sm text-ink-900 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-gold-400 focus:border-gold-400";
+const inputClass = selectClass;
+
+/* ============================== SCORE GAUGE (signature element) ============================== */
+function ScoreGauge({ score = 0, size = 200 }) {
+  const r = size / 2 - 14;
+  const cx = size / 2, cy = size / 2;
+  const startAngle = -220, endAngle = 40; // degrees, gauge arc ~260deg
+  const angleFor = (v) => startAngle + (endAngle - startAngle) * (v / 100);
+  const polar = (angle) => {
+    const rad = (angle * Math.PI) / 180;
+    return [cx + r * Math.cos(rad), cy + r * Math.sin(rad)];
+  };
+  const arcPath = (a0, a1) => {
+    const [x0, y0] = polar(a0);
+    const [x1, y1] = polar(a1);
+    const large = a1 - a0 > 180 ? 1 : 0;
+    return `M ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1}`;
+  };
+  const cat = scoreCategory(score);
+  const colorMap = { emerald: "#059669", gold: "#c8871e", ink: "#556382" };
+  const stroke = colorMap[cat.color];
+  return (
+    <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
+      <svg width={size} height={size}>
+        <path d={arcPath(startAngle, endAngle)} fill="none" stroke="currentColor" strokeWidth="14" strokeLinecap="round" className="text-ink-100 dark:text-ink-800" />
+        <path d={arcPath(startAngle, angleFor(score))} fill="none" stroke={stroke} strokeWidth="14" strokeLinecap="round" />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="font-mono text-4xl font-bold text-ink-900 dark:text-white">{score}</span>
+        <span className="text-[10px] uppercase tracking-widest text-ink-400 font-semibold">Índice IFR</span>
+      </div>
+    </div>
+  );
+}
+
+function DimensionBar({ label, value }) {
+  const cat = scoreCategory(value);
+  const colorMap = { emerald: "bg-emerald-500", gold: "bg-gold-500", ink: "bg-ink-400" };
+  return (
+    <div className="space-y-1.5">
+      <div className="flex justify-between text-xs">
+        <span className="font-semibold text-ink-700 dark:text-ink-200">{label}</span>
+        <span className="font-mono font-bold text-ink-500 dark:text-ink-400">{value}</span>
+      </div>
+      <div className="h-2 rounded-full bg-ink-100 dark:bg-ink-800 overflow-hidden">
+        <div className={`h-full rounded-full ${colorMap[cat.color]} transition-all duration-700`} style={{ width: `${value}%` }} />
+      </div>
+    </div>
+  );
+}
+
+/* ============================== NAV / SHELL ============================== */
+const NAV_ITEMS = [
+  { id: "dashboard", label: "Dashboard", icon: I.dashboard },
+  { id: "crm", label: "CRM de Clientes", icon: I.users },
+  { id: "diagnostico", label: "Diagnóstico", icon: I.compass },
+  { id: "portal", label: "Portal del Cliente", icon: I.portal },
+  { id: "ia", label: "Centro de IA", icon: I.ai },
+];
+
+function AppShell({ page, setPage, dark, setDark, onExit, children }) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const active = NAV_ITEMS.find(n => n.id === page) || NAV_ITEMS[0];
+  return (
+    <div className="min-h-screen flex bg-ink-50 dark:bg-ink-950 text-ink-900 dark:text-ink-100">
+      {/* Sidebar */}
+      <aside className={`fixed md:static inset-y-0 left-0 z-40 w-72 bg-white dark:bg-ink-900 border-r border-ink-100 dark:border-ink-800 flex flex-col transition-transform duration-300 ${mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}>
+        <div className="h-16 flex items-center justify-between px-6 border-b border-ink-100 dark:border-ink-800">
+          <button onClick={onExit} className="flex items-center gap-2.5 group" aria-label="Volver al inicio">
+            <span className="bg-ink-900 dark:bg-gold-500 text-white dark:text-ink-950 w-8 h-8 rounded-lg flex items-center justify-center">
+              <Icon path={I.logo} size={16} strokeWidth={2.2} />
+            </span>
+            <span className="font-display font-bold text-base tracking-tight">Suraci<span className="text-gold-600 dark:text-gold-400"> Consulting</span></span>
+          </button>
+          <button onClick={() => setMobileOpen(false)} className="md:hidden text-ink-400" aria-label="Cerrar menú"><Icon path={I.close} /></button>
+        </div>
+        <nav className="flex-1 px-4 py-6 space-y-1" aria-label="Navegación principal">
+          {NAV_ITEMS.map(item => (
+            <button key={item.id} onClick={() => { setPage(item.id); setMobileOpen(false); }}
+              aria-current={page === item.id ? "page" : undefined}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${page === item.id ? "bg-ink-900 text-white dark:bg-gold-500 dark:text-ink-950" : "text-ink-500 dark:text-ink-300 hover:bg-ink-100 dark:hover:bg-ink-800"}`}>
+              <Icon path={item.icon} size={17} />
+              {item.label}
+            </button>
+          ))}
+        </nav>
+        <div className="p-4 border-t border-ink-100 dark:border-ink-800 space-y-3">
+          <div className="flex items-center gap-3 px-2">
+            <div className="w-9 h-9 rounded-full bg-ink-100 dark:bg-ink-800 flex items-center justify-center font-bold text-xs text-ink-600 dark:text-ink-300">LG</div>
+            <div className="min-w-0">
+              <p className="text-xs font-bold truncate">Lic. Luis Grasso</p>
+              <p className="text-[10px] text-ink-400 truncate">Director de Consultoría</p>
+            </div>
+          </div>
+          <Button variant="ghost" className="w-full justify-start" icon={I.logout} onClick={onExit}>Salir</Button>
+        </div>
+      </aside>
+      {mobileOpen && <div className="fixed inset-0 bg-black/40 z-30 md:hidden" onClick={() => setMobileOpen(false)} />}
+
+      {/* Main */}
+      <div className="flex-1 min-w-0 flex flex-col">
+        <header className="h-16 shrink-0 border-b border-ink-100 dark:border-ink-800 bg-white/80 dark:bg-ink-900/80 backdrop-blur-md flex items-center justify-between px-4 md:px-8 sticky top-0 z-20">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setMobileOpen(true)} className="md:hidden text-ink-500" aria-label="Abrir menú"><Icon path={I.menu} /></button>
+            <h1 className="font-display font-bold text-lg">{active.label}</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="hidden sm:flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Entorno de demostración
+            </span>
+            <button onClick={() => setDark(d => !d)} aria-label={dark ? "Activar modo claro" : "Activar modo oscuro"}
+              className="w-9 h-9 rounded-lg border border-ink-200 dark:border-ink-700 flex items-center justify-center text-ink-500 dark:text-ink-300 hover:bg-ink-100 dark:hover:bg-ink-800">
+              <Icon path={dark ? I.sun : I.moon} size={16} />
+            </button>
+          </div>
+        </header>
+        <main className="flex-1 p-4 md:p-8 max-w-7xl w-full mx-auto">{children}</main>
+      </div>
+    </div>
+  );
+}
+
+/* ============================== LANDING ============================== */
+function Landing({ onEnter }) {
+  const [dark, setDark] = useState(false);
+  useEffect(() => { document.documentElement.classList.toggle("dark", dark); }, [dark]);
+  return (
+    <div className="bg-ink-50 dark:bg-ink-950 text-ink-900 dark:text-ink-100 min-h-screen">
+      <header className="sticky top-0 z-40 bg-white/85 dark:bg-ink-950/85 backdrop-blur-md border-b border-ink-100 dark:border-ink-800">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <span className="bg-ink-900 dark:bg-gold-500 text-white dark:text-ink-950 w-8 h-8 rounded-lg flex items-center justify-center">
+              <Icon path={I.logo} size={16} strokeWidth={2.2} />
+            </span>
+            <span className="font-display font-bold text-lg tracking-tight">Suraci<span className="text-gold-600 dark:text-gold-400"> Consulting</span></span>
+          </div>
+          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-ink-500 dark:text-ink-300">
+            <a href="#servicio" className="hover:text-ink-900 dark:hover:text-white transition-colors">Metodología</a>
+            <a href="#indice" className="hover:text-ink-900 dark:hover:text-white transition-colors">Índice IFR</a>
+            <a href="#plataforma" className="hover:text-ink-900 dark:hover:text-white transition-colors">Plataforma</a>
+          </nav>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setDark(d => !d)} aria-label="Cambiar tema" className="w-9 h-9 rounded-lg border border-ink-200 dark:border-ink-700 flex items-center justify-center text-ink-500 dark:text-ink-300">
+              <Icon path={dark ? I.sun : I.moon} size={16} />
+            </button>
+            <Button onClick={onEnter} icon={I.arrowRight}>Ingresar</Button>
+          </div>
+        </div>
+      </header>
+
+      {/* Hero */}
+      <section className="relative pt-20 pb-24 overflow-hidden">
+        <div className="absolute inset-0 opacity-[0.06] bg-[radial-gradient(#c8871e_1px,transparent_1px)] [background-size:22px_22px]" />
+        <div className="max-w-7xl mx-auto px-6 relative grid lg:grid-cols-12 gap-12 items-center">
+          <div className="lg:col-span-7 space-y-7 fade-in">
+            <Badge className="bg-ink-900 text-white dark:bg-gold-500 dark:text-ink-950">Consultoría de expansión de franquicias</Badge>
+            <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight leading-[1.05]">
+              Medimos si un negocio está <span className="text-gold-600 dark:text-gold-400">listo para ser franquicia</span> — antes de que lo intente
+            </h1>
+            <p className="text-lg text-ink-500 dark:text-ink-300 leading-relaxed max-w-xl">
+              Suraci Consulting OS es la plataforma que usa el equipo de Suraci para diagnosticar, calificar y acompañar a marcas gastronómicas y de servicios en su camino hacia la franquicia, con un índice propio, un CRM comercial y un portal de seguimiento para cada cliente.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button size="lg" onClick={onEnter} icon={I.arrowRight}>Entrar a la plataforma</Button>
+              <a href="#indice"><Button size="lg" variant="outline" icon={I.gauge}>Ver el Índice IFR</Button></a>
+            </div>
+            <div className="flex items-center gap-8 pt-4 text-xs text-ink-400">
+              <div><span className="block font-display text-2xl font-bold text-ink-900 dark:text-white">130+</span>diagnósticos realizados</div>
+              <div><span className="block font-display text-2xl font-bold text-ink-900 dark:text-white">48</span>marcas en expansión activa</div>
+              <div><span className="block font-display text-2xl font-bold text-ink-900 dark:text-white">96%</span>satisfacción de clientes</div>
+            </div>
+          </div>
+          <div className="lg:col-span-5 fade-in">
+            <Card className="p-8 flex flex-col items-center gap-4">
+              <p className="text-xs font-bold uppercase tracking-widest text-ink-400">Ejemplo de resultado</p>
+              <ScoreGauge score={87} size={200} />
+              <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Alto potencial de franquicia</Badge>
+              <div className="w-full space-y-3 pt-2">
+                <DimensionBar label="Financiero" value={91} />
+                <DimensionBar label="Operativo" value={84} />
+                <DimensionBar label="Marca" value={88} />
+                <DimensionBar label="Escalabilidad" value={80} />
+              </div>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Method */}
+      <section id="servicio" className="py-20 bg-white dark:bg-ink-900 border-y border-ink-100 dark:border-ink-800">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="max-w-2xl mb-14">
+            <p className="text-xs font-bold uppercase tracking-widest text-gold-600 dark:text-gold-400 mb-3">Cómo trabajamos</p>
+            <h2 className="font-display text-3xl font-bold tracking-tight">Tres etapas, un mismo sistema</h2>
+          </div>
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              { icon: I.compass, t: "Diagnóstico", d: "El negocio completa un formulario estructurado y obtiene su Índice de Franquiciabilidad (IFR) en cinco dimensiones clave." },
+              { icon: I.users, t: "Acompañamiento comercial", d: "El equipo de Suraci gestiona la relación en el CRM: notas, reuniones, propuestas y contratos, todo en un mismo lugar." },
+              { icon: I.portal, t: "Portal de expansión", d: "Una vez cliente, cada marca accede a su propio portal para seguir la hoja de ruta, documentos y mensajes con su consultor." },
+            ].map((s, idx) => (
+              <div key={s.t} className="space-y-4">
+                <div className="w-12 h-12 rounded-xl bg-ink-900 dark:bg-gold-500 text-white dark:text-ink-950 flex items-center justify-center"><Icon path={s.icon} size={22} /></div>
+                <h3 className="font-display font-bold text-lg">{s.t}</h3>
+                <p className="text-sm text-ink-500 dark:text-ink-300 leading-relaxed">{s.d}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Index explanation */}
+      <section id="indice" className="py-20">
+        <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-14 items-center">
+          <div className="space-y-5">
+            <p className="text-xs font-bold uppercase tracking-widest text-gold-600 dark:text-gold-400">El instrumento</p>
+            <h2 className="font-display text-3xl font-bold tracking-tight">El Índice de Franquiciabilidad (IFR)</h2>
+            <p className="text-ink-500 dark:text-ink-300 leading-relaxed">
+              Un puntaje de 0 a 100 calculado a partir de cinco dimensiones ponderadas: salud financiera, madurez operativa, fortaleza de marca, escalabilidad del modelo y solidez del equipo de gestión. Suraci lo usa como punto de partida objetivo para cada conversación comercial.
+            </p>
+            <ul className="space-y-3 text-sm">
+              {["Financiero — facturación y rentabilidad neta", "Operativo — procesos documentados y antigüedad", "Marca — registro y ubicaciones estratégicas", "Escalabilidad — replicabilidad del modelo de negocio", "Equipo — estructura de gestión y sistemas"].map(t => (
+                <li key={t} className="flex items-start gap-2.5"><Icon path={I.check} size={16} className="text-gold-600 dark:text-gold-400 mt-0.5 shrink-0" /><span className="text-ink-600 dark:text-ink-300">{t}</span></li>
+              ))}
+            </ul>
+          </div>
+          <Card className="p-6 space-y-3">
+            {[
+              { n: "Café del Sur", s: 87 }, { n: "Vital Fit Club", s: 92 }, { n: "Pizza Nostra", s: 71 }, { n: "Nails Studio Córdoba", s: 52 },
+            ].map(r => (
+              <div key={r.n} className="flex items-center justify-between p-3.5 rounded-xl border border-ink-100 dark:border-ink-800">
+                <span className="text-sm font-semibold">{r.n}</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-28 h-1.5 rounded-full bg-ink-100 dark:bg-ink-800 overflow-hidden"><div className="h-full bg-gold-500 rounded-full" style={{ width: r.s + "%" }} /></div>
+                  <span className="font-mono text-xs font-bold w-7 text-right">{r.s}</span>
+                </div>
+              </div>
+            ))}
+          </Card>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section id="plataforma" className="bg-ink-900 dark:bg-ink-900 text-white py-20 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#c8871e_1px,transparent_1px)] [background-size:18px_18px]" />
+        <div className="max-w-4xl mx-auto px-6 text-center space-y-6 relative">
+          <h2 className="font-display text-3xl sm:text-4xl font-bold">Vea la plataforma en acción</h2>
+          <p className="text-ink-300 max-w-xl mx-auto">Explore el dashboard ejecutivo, el CRM comercial, el diagnóstico interactivo y el portal del cliente con datos de demostración reales de la cartera de Suraci.</p>
+          <Button size="lg" variant="gold" onClick={onEnter} icon={I.arrowRight}>Entrar a Suraci Consulting OS</Button>
+        </div>
+      </section>
+
+      <footer className="py-10 border-t border-ink-100 dark:border-ink-800">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-ink-400">
+          <span>© 2026 Suraci Consulting — Plataforma interna de diagnóstico y expansión.</span>
+          <span>Buenos Aires · Mendoza · Córdoba · Rosario</span>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+/* ============================== DASHBOARD ============================== */
+function Dashboard({ clients, setPage }) {
+  const total = clients.length;
+  const activos = clients.filter(c => c.stage === "cliente").length;
+  const enDiagnostico = clients.filter(c => c.stage === "diagnostico").length;
+  const propuestas = clients.filter(c => c.stage === "propuesta").length;
+  const conversion = Math.round((activos / total) * 100);
+  const monthly = [
+    { m: "Feb", v: 4 }, { m: "Mar", v: 6 }, { m: "Abr", v: 9 }, { m: "May", v: 12 }, { m: "Jun", v: 15 }, { m: "Jul", v: 18 },
+  ];
+  const maxV = Math.max(...monthly.map(m => m.v));
+  const byIndustry = INDUSTRIES.map(i => ({ i, n: clients.filter(c => c.industry === i).length })).filter(x => x.n > 0).sort((a, b) => b.n - a.n);
+
+  return (
+    <div className="space-y-8 fade-in">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {[
+          { label: "Clientes en cartera", value: total, icon: I.users, note: "Activos + en proceso" },
+          { label: "Diagnósticos activos", value: enDiagnostico, icon: I.compass, note: "En curso este mes" },
+          { label: "Propuestas enviadas", value: propuestas, icon: I.doc, note: "Pendientes de firma" },
+          { label: "Tasa de conversión", value: conversion + "%", icon: I.trend, note: "Lead → cliente activo" },
+        ].map(k => (
+          <Card key={k.label} className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-ink-400">{k.label}</span>
+              <div className="w-8 h-8 rounded-lg bg-ink-100 dark:bg-ink-800 flex items-center justify-center text-ink-600 dark:text-ink-300"><Icon path={k.icon} size={15} /></div>
+            </div>
+            <p className="font-display text-3xl font-bold">{k.value}</p>
+            <p className="text-[11px] text-ink-400 mt-1">{k.note}</p>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid lg:grid-cols-12 gap-6">
+        <Card className="lg:col-span-7 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="font-display font-bold text-base">Diagnósticos completados por mes</h3>
+              <p className="text-xs text-ink-400">Volumen de evaluaciones de franquiciabilidad</p>
+            </div>
+            <Badge className="bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">+50% vs. trimestre anterior</Badge>
+          </div>
+          <div className="flex items-end gap-4 h-40">
+            {monthly.map(m => (
+              <div key={m.m} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
+                <span className="text-[10px] font-mono text-ink-400 opacity-0 group-hover:opacity-100 transition-opacity">{m.v}</span>
+                <div className="w-full rounded-t-md bg-ink-100 dark:bg-ink-800 relative overflow-hidden" style={{ height: `${(m.v / maxV) * 100}%` }}>
+                  <div className="absolute inset-0 bg-gold-500 group-hover:bg-gold-400 transition-colors" />
+                </div>
+                <span className="text-[11px] font-semibold text-ink-500">{m.m}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+        <Card className="lg:col-span-5 p-6">
+          <h3 className="font-display font-bold text-base mb-1">Cartera por industria</h3>
+          <p className="text-xs text-ink-400 mb-5">Distribución de clientes activos</p>
+          <div className="space-y-3.5">
+            {byIndustry.map(x => (
+              <div key={x.i} className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-ink-600 dark:text-ink-300">{x.i}</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-24 h-1.5 rounded-full bg-ink-100 dark:bg-ink-800 overflow-hidden"><div className="h-full bg-ink-900 dark:bg-gold-500 rounded-full" style={{ width: `${(x.n / total) * 100}%` }} /></div>
+                  <span className="font-mono text-xs font-bold w-4 text-right">{x.n}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="font-display font-bold text-base">Actividad reciente</h3>
+          <button onClick={() => setPage("crm")} className="text-xs font-semibold text-gold-600 dark:text-gold-400 flex items-center gap-1 hover:underline">Ver CRM completo <Icon path={I.chevronRight} size={13} /></button>
+        </div>
+        <div className="space-y-3">
+          {clients.flatMap(c => c.timeline.slice(-1).map(t => ({ ...t, client: c.name }))).sort((a, b) => b.d.localeCompare(a.d)).slice(0, 5).map((t, idx) => (
+            <div key={idx} className="flex items-start gap-3 p-3 rounded-xl hover:bg-ink-50 dark:hover:bg-ink-800/50 transition-colors">
+              <div className="w-8 h-8 rounded-lg bg-gold-50 dark:bg-gold-900/20 text-gold-600 dark:text-gold-400 flex items-center justify-center shrink-0"><Icon path={I.clock} size={15} /></div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold">{t.client}</p>
+                <p className="text-xs text-ink-500 dark:text-ink-400 truncate">{t.t}</p>
+              </div>
+              <span className="text-[10px] font-mono text-ink-400 shrink-0">{fmtDate(t.d)}</span>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+/* ============================== CRM ============================== */
+function CRM({ clients, setClients, selectedId, setSelectedId }) {
+  const [search, setSearch] = useState("");
+  const [stageFilter, setStageFilter] = useState("all");
+  const [noteText, setNoteText] = useState("");
+
+  const filtered = clients.filter(c => {
+    const q = search.toLowerCase();
+    const matches = c.name.toLowerCase().includes(q) || c.owner.toLowerCase().includes(q) || c.city.toLowerCase().includes(q);
+    const stageOk = stageFilter === "all" || c.stage === stageFilter;
+    return matches && stageOk;
+  });
+
+  const selected = clients.find(c => c.id === selectedId) || filtered[0] || null;
+
+  const addNote = (e) => {
+    e.preventDefault();
+    if (!noteText.trim() || !selected) return;
+    const entry = { d: new Date().toISOString().slice(0, 10), t: noteText.trim(), k: "nota" };
+    setClients(clients.map(c => c.id === selected.id ? { ...c, timeline: [...c.timeline, entry] } : c));
+    setNoteText("");
+  };
+
+  const changeStage = (stageId) => {
+    if (!selected) return;
+    setClients(clients.map(c => c.id === selected.id ? { ...c, stage: stageId } : c));
+  };
+
+  return (
+    <div className="grid lg:grid-cols-12 gap-6 fade-in items-start">
+      <div className="lg:col-span-7 space-y-4">
+        <Card className="p-4 flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Icon path={I.search} size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400" />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por marca, propietario o ciudad..."
+              className="w-full pl-9 pr-3 py-2 rounded-lg border border-ink-200 dark:border-ink-700 bg-ink-50 dark:bg-ink-800 text-sm focus:outline-none focus:ring-2 focus:ring-gold-400" />
+          </div>
+          <select value={stageFilter} onChange={e => setStageFilter(e.target.value)} className={selectClass + " sm:w-56"}>
+            <option value="all">Todas las etapas</option>
+            {STAGES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+          </select>
+        </Card>
+        <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
+          {filtered.length === 0 && <Card className="p-10 text-center text-sm text-ink-400">No hay clientes que coincidan con la búsqueda.</Card>}
+          {filtered.map(c => {
+            const sm = stageMeta(c.stage);
+            const active = selected && selected.id === c.id;
+            return (
+              <Card key={c.id} onClick={() => setSelectedId(c.id)} className={`p-4 cursor-pointer transition-all ${active ? "ring-2 ring-gold-400" : "hover:border-ink-200 dark:hover:border-ink-700"}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-bold text-sm truncate">{c.name}</p>
+                    <p className="text-xs text-ink-400">{c.owner} · {c.city}</p>
+                  </div>
+                  <Badge className={sm.color}>{sm.label}</Badge>
+                </div>
+                <div className="flex items-center justify-between mt-3">
+                  <span className="text-[11px] text-ink-500 dark:text-ink-400">{c.industry}</span>
+                  {c.score > 0 ? (
+                    <span className="font-mono text-xs font-bold text-ink-700 dark:text-ink-200">IFR {c.score}</span>
+                  ) : <span className="text-[11px] text-ink-300">Sin diagnóstico</span>}
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="lg:col-span-5">
+        {!selected ? (
+          <Card className="p-10 text-center text-sm text-ink-400">Seleccioná un cliente para ver su ficha.</Card>
+        ) : (
+          <Card className="p-6 space-y-6 sticky top-24">
+            <div>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="font-display font-bold text-lg">{selected.name}</h2>
+                  <p className="text-xs text-ink-400">{selected.owner} · {selected.industry}</p>
+                </div>
+                {selected.score > 0 && <ScoreGauge score={selected.score} size={72} />}
+              </div>
+              <select value={selected.stage} onChange={e => changeStage(e.target.value)} className={selectClass + " mt-4"} aria-label="Cambiar etapa del cliente">
+                {STAGES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+              </select>
+              <div className="grid grid-cols-1 gap-2 mt-4 text-xs">
+                <span className="flex items-center gap-2 text-ink-500 dark:text-ink-400"><Icon path={I.mail} size={14} /> {selected.email}</span>
+                <span className="flex items-center gap-2 text-ink-500 dark:text-ink-400"><Icon path={I.phone} size={14} /> {selected.phone}</span>
+              </div>
+            </div>
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-widest text-ink-400 mb-3">Línea de tiempo</h3>
+              <div className="space-y-3 max-h-64 overflow-y-auto pr-1 border-l-2 border-ink-100 dark:border-ink-800 pl-4">
+                {selected.timeline.slice().reverse().map((t, idx) => (
+                  <div key={idx} className="relative">
+                    <span className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-gold-500 border-2 border-white dark:border-ink-900" />
+                    <p className="text-[10px] font-mono text-ink-400">{fmtDate(t.d)}</p>
+                    <p className="text-xs text-ink-700 dark:text-ink-200 leading-relaxed">{t.t}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <form onSubmit={addNote} className="flex gap-2">
+              <input value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Agregar nota de seguimiento..."
+                className="flex-1 px-3 py-2 rounded-lg border border-ink-200 dark:border-ink-700 bg-ink-50 dark:bg-ink-800 text-xs focus:outline-none focus:ring-2 focus:ring-gold-400" />
+              <Button type="submit" size="sm" icon={I.send}>Añadir</Button>
+            </form>
+          </Card>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ============================== DIAGNÓSTICO ============================== */
+const DIAG_QUESTIONS = [
+  { key: "facturacion", label: "Facturación anual aproximada", dim: "financiero", options: [
+    ["<$20M ARS", 20], ["$20M – $60M ARS", 50], ["$60M – $150M ARS", 75], [">$150M ARS", 100] ] },
+  { key: "rentabilidad", label: "Rentabilidad neta mensual", dim: "financiero", options: [
+    ["Negativa o en equilibrio", 10], ["1% – 8%", 45], ["8% – 15%", 75], ["Más de 15%", 100] ] },
+  { key: "antiguedad", label: "Años operando el negocio original", dim: "operativo", options: [
+    ["Menos de 1 año", 15], ["1 a 3 años", 50], ["3 a 6 años", 80], ["Más de 6 años", 100] ] },
+  { key: "procesos", label: "¿Los procesos operativos están documentados?", dim: "operativo", options: [
+    ["No están documentados", 10], ["Parcialmente, en forma informal", 50], ["Sí, en manuales internos", 85], ["Sí, con manual de franquicia formal", 100] ] },
+  { key: "marca", label: "Situación de la marca comercial", dim: "marca", options: [
+    ["Sin registrar", 15], ["En trámite de registro", 55], ["Registrada en una clase", 80], ["Registrada y con identidad visual consolidada", 100] ] },
+  { key: "ubicacion", label: "Ubicaciones actuales del negocio", dim: "marca", options: [
+    ["Un único local", 40], ["2 a 3 locales propios", 65], ["4 a 8 locales", 85], ["Más de 8 locales", 100] ] },
+  { key: "replicabilidad", label: "¿Qué tan replicable es el modelo sin la presencia del fundador?", dim: "escalabilidad", options: [
+    ["Depende totalmente del fundador", 10], ["Depende en gran parte", 40], ["Es mayormente independiente", 75], ["Totalmente replicable con manual y capacitación", 100] ] },
+  { key: "demanda", label: "Interés externo recibido en franquiciar", dim: "escalabilidad", options: [
+    ["Ninguno todavía", 20], ["Consultas informales ocasionales", 50], ["Solicitudes concretas recibidas", 80], ["Lista de espera de inversores", 100] ] },
+  { key: "equipo", label: "Estructura de equipo de gestión", dim: "equipo", options: [
+    ["Solo el/la fundador/a", 15], ["Fundador + encargados de local", 50], ["Equipo gerencial parcial", 80], ["Equipo gerencial completo (operaciones, RRHH, marketing)", 100] ] },
+  { key: "sistemas", label: "Sistemas tecnológicos de gestión implementados", dim: "equipo", options: [
+    ["Ninguno / manual en papel", 15], ["Planillas y POS básico", 45], ["Software de gestión integrado", 80], ["Software + reportes en tiempo real", 100] ] },
+];
+const DIM_LABELS = { financiero: "Financiero", operativo: "Operativo", marca: "Marca", escalabilidad: "Escalabilidad", equipo: "Equipo de gestión" };
+
+function Diagnostico({ clients, setClients, onSaved }) {
+  const [answers, setAnswers] = useState({});
+  const [businessName, setBusinessName] = useState("");
+  const [ownerName, setOwnerName] = useState("");
+  const [industry, setIndustry] = useState(INDUSTRIES[0]);
+  const [city, setCity] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const answeredCount = Object.keys(answers).length;
+  const progress = Math.round((answeredCount / DIAG_QUESTIONS.length) * 100);
+
+  const results = useMemo(() => {
+    const byDim = {};
+    DIAG_QUESTIONS.forEach(q => {
+      const v = answers[q.key];
+      if (v === undefined) return;
+      byDim[q.dim] = byDim[q.dim] || [];
+      byDim[q.dim].push(v);
+    });
+    const dims = Object.keys(DIM_LABELS).map(d => {
+      const vals = byDim[d] || [];
+      const avg = vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
+      return { key: d, label: DIM_LABELS[d], value: avg };
+    });
+    const overall = dims.length ? Math.round(dims.reduce((a, b) => a + b.value, 0) / dims.length) : 0;
+    return { dims, overall };
+  }, [answers]);
+
+  const canSubmit = businessName.trim() && answeredCount === DIAG_QUESTIONS.length;
+
+  const submit = (e) => {
+    e.preventDefault();
+    if (!canSubmit) return;
+    setSubmitted(true);
+  };
+
+  const saveToCRM = () => {
+    const newClient = {
+      id: "c" + (clients.length + 1) + "-" + Date.now(),
+      name: businessName, owner: ownerName || "Sin especificar", industry, city: city || "Sin especificar",
+      stage: "diagnostico", email: "-", phone: "-", score: results.overall,
+      timeline: [{ d: new Date().toISOString().slice(0, 10), t: `Diagnóstico de franquiciabilidad completado — Índice ${results.overall}/100`, k: "diagnostico" }],
+    };
+    setClients([newClient, ...clients]);
+    setSaved(true);
+  };
+
+  const reset = () => { setAnswers({}); setBusinessName(""); setOwnerName(""); setCity(""); setSubmitted(false); setSaved(false); };
+
+  if (submitted) {
+    const cat = scoreCategory(results.overall);
+    const catColor = { emerald: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300", gold: "bg-gold-100 text-gold-800 dark:bg-gold-900/40 dark:text-gold-300", ink: "bg-ink-100 text-ink-700 dark:bg-ink-800 dark:text-ink-200" }[cat.color];
+    return (
+      <div className="max-w-4xl mx-auto space-y-6 fade-in">
+        <Card className="p-8 text-center space-y-4">
+          <p className="text-xs font-bold uppercase tracking-widest text-ink-400">Resultado del diagnóstico</p>
+          <h2 className="font-display text-2xl font-bold">{businessName}</h2>
+          <div className="flex justify-center py-2"><ScoreGauge score={results.overall} size={220} /></div>
+          <Badge className={catColor}>{cat.label}</Badge>
+          <p className="max-w-lg mx-auto text-sm text-ink-500 dark:text-ink-300">{cat.desc}</p>
+        </Card>
+        <Card className="p-6">
+          <h3 className="font-display font-bold text-base mb-5">Desglose por dimensión</h3>
+          <div className="grid sm:grid-cols-2 gap-x-8 gap-y-5">
+            {results.dims.map(d => <DimensionBar key={d.key} label={d.label} value={d.value} />)}
+          </div>
+        </Card>
+        <Card className="p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-sm text-ink-500 dark:text-ink-300">{saved ? "El diagnóstico se guardó en el CRM de clientes." : "Guardá este diagnóstico en el CRM para iniciar el seguimiento comercial."}</p>
+          <div className="flex gap-3 shrink-0">
+            <Button variant="outline" onClick={reset} icon={I.compass}>Nuevo diagnóstico</Button>
+            {!saved ? <Button onClick={saveToCRM} icon={I.plus}>Guardar en CRM</Button> : <Button variant="gold" onClick={onSaved} icon={I.arrowRight}>Ver en CRM</Button>}
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-3xl mx-auto space-y-6 fade-in">
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="font-display font-bold text-lg">Diagnóstico de Franquiciabilidad</h2>
+          <span className="font-mono text-xs font-bold text-ink-400">{answeredCount}/{DIAG_QUESTIONS.length}</span>
+        </div>
+        <div className="h-1.5 rounded-full bg-ink-100 dark:bg-ink-800 overflow-hidden mb-1">
+          <div className="h-full bg-gold-500 rounded-full transition-all duration-300" style={{ width: `${progress}%` }} />
+        </div>
+        <p className="text-xs text-ink-400">Complete los datos del negocio y responda las {DIAG_QUESTIONS.length} preguntas para calcular el Índice IFR.</p>
+      </Card>
+
+      <form onSubmit={submit} className="space-y-6">
+        <Card className="p-6 grid sm:grid-cols-2 gap-4">
+          <Field label="Nombre del negocio"><input required value={businessName} onChange={e => setBusinessName(e.target.value)} className={inputClass} placeholder="Ej: Café del Sur" /></Field>
+          <Field label="Nombre del/la propietario/a"><input value={ownerName} onChange={e => setOwnerName(e.target.value)} className={inputClass} placeholder="Ej: Juan Pérez" /></Field>
+          <Field label="Industria">
+            <select value={industry} onChange={e => setIndustry(e.target.value)} className={selectClass}>
+              {INDUSTRIES.map(i => <option key={i} value={i}>{i}</option>)}
+            </select>
+          </Field>
+          <Field label="Ciudad"><input value={city} onChange={e => setCity(e.target.value)} className={inputClass} placeholder="Ej: Mendoza" /></Field>
+        </Card>
+
+        {["financiero", "operativo", "marca", "escalabilidad", "equipo"].map(dim => (
+          <Card key={dim} className="p-6 space-y-5">
+            <h3 className="font-display font-bold text-sm text-gold-700 dark:text-gold-400 uppercase tracking-wide">{DIM_LABELS[dim]}</h3>
+            {DIAG_QUESTIONS.filter(q => q.dim === dim).map(q => (
+              <Field key={q.key} label={q.label}>
+                <div className="grid sm:grid-cols-2 gap-2">
+                  {q.options.map(([label, val]) => (
+                    <button type="button" key={label} onClick={() => setAnswers({ ...answers, [q.key]: val })}
+                      className={`text-left px-3.5 py-2.5 rounded-lg border text-xs font-medium transition-all ${answers[q.key] === val ? "border-gold-500 bg-gold-50 dark:bg-gold-900/20 text-gold-800 dark:text-gold-300 font-bold" : "border-ink-200 dark:border-ink-700 hover:border-ink-300 dark:hover:border-ink-600"}`}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+            ))}
+          </Card>
+        ))}
+
+        <Button type="submit" size="lg" disabled={!canSubmit} className="w-full" icon={I.gauge}>Calcular Índice de Franquiciabilidad</Button>
+      </form>
+    </div>
+  );
+}
+
+/* ============================== PORTAL DEL CLIENTE ============================== */
+function PortalCliente({ clients }) {
+  const clientOptions = clients.filter(c => c.stage === "cliente" || c.stage === "propuesta" || c.stage === "diagnostico");
+  const [clientId, setClientId] = useState(clientOptions[0]?.id);
+  const client = clients.find(c => c.id === clientId) || clientOptions[0];
+  const [tab, setTab] = useState("resumen");
+  const tabs = [
+    { id: "resumen", label: "Resumen" },
+    { id: "hoja", label: "Hoja de Ruta" },
+    { id: "docs", label: "Documentos" },
+    { id: "mensajes", label: "Mensajes" },
+  ];
+  const roadmap = [
+    { t: "Diagnóstico de franquiciabilidad", done: true },
+    { t: "Diseño del manual de operaciones", done: client && client.score >= 60 },
+    { t: "Definición de estructura legal de franquicia", done: client && client.stage === "cliente" },
+    { t: "Piloto en primer local franquiciado", done: false },
+    { t: "Lanzamiento comercial a inversores", done: false },
+  ];
+  const docs = [
+    { n: "Diagnóstico_Franquiciabilidad_Completo.pdf", size: "1.4 MB" },
+    { n: "Manual_de_Operaciones_Borrador.pdf", size: "3.8 MB" },
+    { n: "Propuesta_Comercial_Suraci.pdf", size: "620 KB" },
+  ];
+  const [messages, setMessages] = useState([
+    { from: "consultor", t: "¡Hola! Ya tenemos los resultados de tu diagnóstico. Te propongo coordinar una llamada esta semana para revisar el plan de expansión.", d: "2026-07-08" },
+    { from: "cliente", t: "Perfecto, el jueves a las 15hs me queda cómodo. Gracias!", d: "2026-07-08" },
+  ]);
+  const [draft, setDraft] = useState("");
+  const send = (e) => { e.preventDefault(); if (!draft.trim()) return; setMessages([...messages, { from: "cliente", t: draft.trim(), d: new Date().toISOString().slice(0, 10) }]); setDraft(""); };
+
+  if (!client) return <Card className="p-10 text-center text-sm text-ink-400">Aún no hay clientes con diagnóstico guardado. Completá uno en la sección Diagnóstico.</Card>;
+
+  return (
+    <div className="space-y-6 fade-in">
+      <Card className="p-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-semibold text-ink-400">Vista simulada del portal para:</span>
+          <select value={clientId} onChange={e => setClientId(e.target.value)} className={selectClass + " w-auto"}>
+            {clientOptions.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </div>
+        <Badge className={stageMeta(client.stage).color}>{stageMeta(client.stage).label}</Badge>
+      </Card>
+
+      <div className="flex gap-1 border-b border-ink-100 dark:border-ink-800 overflow-x-auto">
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)} className={`px-4 py-3 text-sm font-semibold whitespace-nowrap border-b-2 transition-colors ${tab === t.id ? "border-gold-500 text-ink-900 dark:text-white" : "border-transparent text-ink-400 hover:text-ink-700 dark:hover:text-ink-200"}`}>{t.label}</button>
+        ))}
+      </div>
+
+      {tab === "resumen" && (
+        <div className="grid lg:grid-cols-12 gap-6">
+          <Card className="lg:col-span-5 p-6 flex flex-col items-center gap-4">
+            <p className="text-xs font-bold uppercase tracking-widest text-ink-400">Tu Índice de Franquiciabilidad</p>
+            <ScoreGauge score={client.score || 0} size={190} />
+            <p className="text-sm text-center text-ink-500 dark:text-ink-300">{scoreCategory(client.score || 0).desc}</p>
+          </Card>
+          <Card className="lg:col-span-7 p-6">
+            <h3 className="font-display font-bold text-base mb-4">Próximos pasos recomendados</h3>
+            <ul className="space-y-3">
+              {roadmap.slice(0, 3).map(r => (
+                <li key={r.t} className="flex items-center gap-3 text-sm">
+                  <Icon path={r.done ? I.checkCircle : I.clock} size={18} className={r.done ? "text-emerald-600" : "text-ink-300"} />
+                  <span className={r.done ? "text-ink-400 line-through" : "font-medium"}>{r.t}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-6 p-4 rounded-xl bg-gold-50 dark:bg-gold-900/20 border border-gold-100 dark:border-gold-800 flex items-center gap-3">
+              <Icon path={I.spark} size={20} className="text-gold-600 dark:text-gold-400 shrink-0" />
+              <p className="text-xs text-gold-800 dark:text-gold-300">Tu consultor asignado es <strong>Lic. Luis Grasso</strong>. Coordiná dudas desde la pestaña Mensajes.</p>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {tab === "hoja" && (
+        <Card className="p-6">
+          <h3 className="font-display font-bold text-base mb-6">Hoja de ruta de expansión</h3>
+          <div className="space-y-4 border-l-2 border-ink-100 dark:border-ink-800 pl-6">
+            {roadmap.map((r, idx) => (
+              <div key={r.t} className="relative">
+                <span className={`absolute -left-[29px] top-0.5 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-ink-900 ${r.done ? "bg-emerald-500" : "bg-ink-200 dark:bg-ink-700"}`} />
+                <p className={`text-sm font-semibold ${r.done ? "text-ink-400 line-through" : ""}`}>{idx + 1}. {r.t}</p>
+                <p className="text-xs text-ink-400 mt-0.5">{r.done ? "Completado" : "Pendiente"}</p>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {tab === "docs" && (
+        <Card className="p-6">
+          <h3 className="font-display font-bold text-base mb-5">Documentos compartidos</h3>
+          <div className="space-y-2.5">
+            {docs.map(d => (
+              <div key={d.n} className="flex items-center justify-between p-3.5 border border-ink-100 dark:border-ink-800 rounded-xl hover:bg-ink-50 dark:hover:bg-ink-800/50 transition-colors">
+                <div className="flex items-center gap-3 min-w-0">
+                  <Icon path={I.doc} size={18} className="text-gold-600 dark:text-gold-400 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold truncate">{d.n}</p>
+                    <p className="text-[10px] text-ink-400">{d.size}</p>
+                  </div>
+                </div>
+                <Button size="sm" variant="ghost">Descargar</Button>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {tab === "mensajes" && (
+        <Card className="p-0 overflow-hidden flex flex-col h-[420px]">
+          <div className="flex-1 overflow-y-auto p-5 space-y-3">
+            {messages.map((m, idx) => (
+              <div key={idx} className={`max-w-[75%] ${m.from === "cliente" ? "ml-auto" : ""}`}>
+                <div className={`p-3 rounded-2xl text-xs leading-relaxed ${m.from === "cliente" ? "bg-ink-900 text-white dark:bg-gold-500 dark:text-ink-950" : "bg-ink-100 dark:bg-ink-800"}`}>{m.t}</div>
+                <p className="text-[9px] text-ink-400 mt-1 font-mono">{fmtDate(m.d)}</p>
+              </div>
+            ))}
+          </div>
+          <form onSubmit={send} className="p-4 border-t border-ink-100 dark:border-ink-800 flex gap-2">
+            <input value={draft} onChange={e => setDraft(e.target.value)} placeholder="Escribí un mensaje a tu consultor..." className="flex-1 px-3.5 py-2.5 rounded-lg border border-ink-200 dark:border-ink-700 bg-ink-50 dark:bg-ink-800 text-xs focus:outline-none focus:ring-2 focus:ring-gold-400" />
+            <Button type="submit" size="sm" icon={I.send}>Enviar</Button>
+          </form>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+/* ============================== CENTRO DE IA ============================== */
+function botReply(text) {
+  const t = text.toLowerCase();
+  if (t.includes("ifr") || t.includes("índice") || t.includes("indice") || t.includes("franquiciab"))
+    return "El Índice de Franquiciabilidad (IFR) combina cinco dimensiones —financiero, operativo, marca, escalabilidad y equipo— en un puntaje de 0 a 100. Un negocio con IFR ≥75 suele estar listo para iniciar el proceso; entre 50 y 74 requiere fortalecer procesos antes de escalar.";
+  if (t.includes("manual") || t.includes("proceso"))
+    return "El manual de operaciones es el documento base para franquiciar: estandariza apertura, atención, control de calidad y cierre de cada local. Suraci lo redacta junto al equipo del cliente durante la etapa de acompañamiento comercial.";
+  if (t.includes("regalía") || t.includes("regalia") || t.includes("costo") || t.includes("precio"))
+    return "La estructura habitual de regalías que recomendamos a nuestros clientes ronda el 5% del neto facturado mensualmente, más un canon de ingreso inicial que varía según la marca y la inversión requerida por local.";
+  if (t.includes("cliente") || t.includes("crm"))
+    return "Podés ver el estado comercial de cada marca en el módulo CRM de Clientes: etapa del embudo, línea de tiempo de interacciones y notas de seguimiento. Desde ahí también podés cambiar la etapa de negociación.";
+  if (t.includes("hola") || t.includes("buenas"))
+    return "¡Hola! Soy el asistente de Suraci Consulting. Puedo ayudarte con dudas sobre el Índice IFR, la metodología de diagnóstico, el CRM de clientes o el proceso de expansión de franquicias.";
+  return "Entiendo tu consulta. Te recomiendo revisar el módulo de Diagnóstico para calcular el Índice IFR de un negocio, o el CRM de Clientes para ver el estado comercial de una marca en particular.";
+}
+
+function CentroIA() {
+  const [messages, setMessages] = useState([
+    { from: "bot", t: "¡Hola! Soy el asistente de Suraci Consulting. Preguntame sobre el Índice IFR, la metodología de diagnóstico o el proceso de expansión de franquicias." },
+  ]);
+  const [draft, setDraft] = useState("");
+  const [typing, setTyping] = useState(false);
+  const scrollRef = useRef(null);
+  useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages, typing]);
+
+  const send = (e, preset) => {
+    if (e) e.preventDefault();
+    const text = (preset || draft).trim();
+    if (!text) return;
+    setMessages(m => [...m, { from: "user", t: text }]);
+    setDraft("");
+    setTyping(true);
+    setTimeout(() => { setTyping(false); setMessages(m => [...m, { from: "bot", t: botReply(text) }]); }, 800);
+  };
+
+  const suggestions = ["¿Cómo se calcula el Índice IFR?", "¿Qué es el manual de operaciones?", "¿Cuánto cobramos de regalías?", "¿Dónde veo el estado de un cliente?"];
+
+  return (
+    <div className="grid lg:grid-cols-12 gap-6 fade-in h-[calc(100vh-160px)]">
+      <Card className="lg:col-span-8 flex flex-col overflow-hidden">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 space-y-4">
+          {messages.map((m, idx) => {
+            const bot = m.from === "bot";
+            return (
+              <div key={idx} className={`flex gap-3 max-w-[85%] ${bot ? "" : "ml-auto flex-row-reverse"}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${bot ? "bg-gold-50 text-gold-700 dark:bg-gold-900/30 dark:text-gold-300" : "bg-ink-900 text-white dark:bg-ink-700"}`}>
+                  <Icon path={bot ? I.bot : I.users} size={14} />
+                </div>
+                <div className={`p-3.5 rounded-2xl text-xs leading-relaxed ${bot ? "bg-ink-50 dark:bg-ink-800" : "bg-ink-900 text-white dark:bg-gold-500 dark:text-ink-950"}`}>{m.t}</div>
+              </div>
+            );
+          })}
+          {typing && (
+            <div className="flex gap-3 max-w-[85%]">
+              <div className="w-8 h-8 rounded-full bg-gold-50 dark:bg-gold-900/30 text-gold-700 dark:text-gold-300 flex items-center justify-center"><Icon path={I.bot} size={14} /></div>
+              <div className="p-3.5 rounded-2xl bg-ink-50 dark:bg-ink-800 text-xs text-ink-400 flex gap-1">
+                <span className="w-1.5 h-1.5 bg-ink-400 rounded-full animate-bounce" />
+                <span className="w-1.5 h-1.5 bg-ink-400 rounded-full animate-bounce" style={{ animationDelay: ".1s" }} />
+                <span className="w-1.5 h-1.5 bg-ink-400 rounded-full animate-bounce" style={{ animationDelay: ".2s" }} />
+              </div>
+            </div>
+          )}
+        </div>
+        <form onSubmit={send} className="p-4 border-t border-ink-100 dark:border-ink-800 flex gap-2">
+          <input value={draft} onChange={e => setDraft(e.target.value)} placeholder="Preguntá algo sobre franquicias, diagnóstico o el CRM..."
+            className="flex-1 px-4 py-2.5 rounded-xl border border-ink-200 dark:border-ink-700 bg-ink-50 dark:bg-ink-800 text-xs focus:outline-none focus:ring-2 focus:ring-gold-400" />
+          <Button type="submit" icon={I.send} disabled={!draft.trim()}>Enviar</Button>
+        </form>
+      </Card>
+      <Card className="lg:col-span-4 p-5 space-y-4 h-fit">
+        <h3 className="text-xs font-bold uppercase tracking-widest text-ink-400">Preguntas frecuentes</h3>
+        <div className="space-y-2">
+          {suggestions.map(s => (
+            <button key={s} onClick={() => send(null, s)} className="w-full text-left p-3 rounded-xl border border-ink-100 dark:border-ink-800 text-xs font-semibold hover:border-gold-300 dark:hover:border-gold-700 hover:bg-gold-50/50 dark:hover:bg-gold-900/10 transition-all flex items-center justify-between group">
+              <span>{s}</span><Icon path={I.arrowRight} size={13} className="text-ink-300 group-hover:text-gold-600 group-hover:translate-x-0.5 transition-all shrink-0" />
+            </button>
+          ))}
+        </div>
+        <div className="p-3.5 rounded-xl bg-ink-50 dark:bg-ink-800 text-[10px] text-ink-400 leading-relaxed">
+          Este asistente funciona con respuestas de demostración locales. En producción se conecta a la base de manuales y contratos de Suraci.
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+/* ============================== ROOT APP ============================== */
+function App() {
+  const [view, setView] = useState("landing"); // landing | app
+  const [page, setPage] = useState("dashboard");
+  const [dark, setDark] = useState(false);
+  const [clients, setClients] = useState(seedClients);
+  const [selectedId, setSelectedId] = useState(seedClients[0].id);
+
+  useEffect(() => { document.documentElement.classList.toggle("dark", dark); }, [dark]);
+
+  if (view === "landing") return <Landing onEnter={() => { setView("app"); setPage("dashboard"); }} />;
+
+  return (
+    <AppShell page={page} setPage={setPage} dark={dark} setDark={setDark} onExit={() => setView("landing")}>
+      {page === "dashboard" && <Dashboard clients={clients} setPage={setPage} />}
+      {page === "crm" && <CRM clients={clients} setClients={setClients} selectedId={selectedId} setSelectedId={setSelectedId} />}
+      {page === "diagnostico" && <Diagnostico clients={clients} setClients={setClients} onSaved={() => setPage("crm")} />}
+      {page === "portal" && <PortalCliente clients={clients} />}
+      {page === "ia" && <CentroIA />}
+    </AppShell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
